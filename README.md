@@ -36,10 +36,10 @@
 
 ##### 起動方法
 
-以下のコマンドで起動をすることができます。`sk_xxx_xxx_xxx_xxx`は自らの秘密鍵に置き換えてください。
+以下のコマンドで起動をすることができます。`xxx_xxx_xxx_xxx_xxx=`はGoogle Cloud KMSでエンコードした秘密鍵に置き換えてください。
 
 ```
-$ STRIPE_SECRET_KEY=sk_xxx_xxx_xxx_xxx go run server/server.go
+$ ENCODED_STRIPE_SECRET_KEY=xxx_xxx_xxx_xxx= KEY=key go run server/server.go
 ```
 
 起動すると以下のように出力を確認することができます。

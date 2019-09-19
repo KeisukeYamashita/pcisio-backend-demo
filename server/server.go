@@ -1,18 +1,26 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 
+	kms "cloud.google.com/go/kms/apiv1"
+	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/charge"
 )
 
 func main() {
-	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
+	var err error
+	if stripe.Key, err = os.Getenv("ENCODED_STRIPE_SECRET_KEY"); err != nil {
+		log.Fatal(err)
+	}
 
 	db, err := sql.Open("mysql", "username:password@tcp(127.0.0.1:3306)/test")
 	if err != nil {
@@ -76,4 +84,30 @@ func main() {
 	if err := http.ListenAndServe(":5050", nil); err != nil {
 		log.Fatalf("start server error: %v", err)
 	}
+}
+
+func decodeKey(ctx context.Context, encodedKey string) (string, error) {
+
+	client, err := kms.NewKeyManagementClient(ctx)
+	if err != nil {
+		log.Fatalf("client error failed: %v", err)
+	}
+
+	t, err := base64.StdEncoding.DecodeString(encodedKey)
+	if err != nil {
+		log.Fatal("cannot base64")
+	}
+
+	// Build the request.
+	req := &kmspb.DecryptRequest{
+		Name:       os.Getenv("CLOUD_KMS_KEY"),
+		Ciphertext: t,
+	}
+	// Call the API.
+	resp, err := client.Decrypt(ctx, req)
+	if err != nil {
+		log.Fatalf("resp failed: %v", err)
+	}
+
+	fmt.Println(string(resp.Plaintext))
 }
