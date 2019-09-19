@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -12,6 +13,12 @@ import (
 
 func main() {
 	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
+
+	db, err := sql.Open("mysql", "username:password@tcp(127.0.0.1:3306)/test")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
 
 	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		type HealthResponse struct {
@@ -27,8 +34,26 @@ func main() {
 	})
 
 	http.HandleFunc("/api/v1.0/charge", func(w http.ResponseWriter, r *http.Request) {
-		keys, _ := r.URL.Query()["cusID"]
-		cusID := keys[0]
+		keys, _ := r.URL.Query()["userD"]
+		userID := keys[0]
+
+		results, err := db.Query("SELECT * FROM Users ( 2, 'TEST' )", userID)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write(nil)
+			return
+		}
+
+		var cusID string
+
+		for results.Next() {
+			err = results.Scan(&cusID)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write(nil)
+				return
+			}
+		}
 
 		type PaymentResponse struct {
 			status int
