@@ -4,6 +4,8 @@
 
 このリポジトリはバックエンド編でのサンプルコードとなっています。Stripeに限らず、決済代行会社のSDKは似たようなAPIになっているため、本実装が参考になると思います。
 
+ロードバランサの章は、ほとんどがGCP上のUIで完結することが多いため、本リポジトリで紹介をしています。更新があれば、図も合わせて更新する意気込みです。
+
 ## 目次
 
 以下の目次で`README.md`は構成されています。
@@ -21,6 +23,80 @@
 - [ご質問やお問い合わせなど](#%E3%81%94%E8%B3%AA%E5%95%8F%E3%82%84%E3%81%8A%E5%95%8F%E3%81%84%E5%90%88%E3%82%8F%E3%81%9B%E3%81%AA%E3%81%A9)
 - [Author](#author)
     + [Github: KeisukeYamashita](#github-keisukeyamashita)
+
+## GCEに対するロードバランサの設定方法
+
+### 1. Instance Templateを作成する
+
+まず、Computer Engineタブの"Instance Template"の中から"Create Instance Template"ボタンを押します。Instance Templateとはロードバランサに紐づくサーバーのクラスタの雛形になるものです。
+
+押すと、以下のような画面へ遷移をします。
+
+![Create_instance_template](images/create_instance_template.png)
+
+主な設定項目は以下の通りです。
+
+ * テンプレートの名前
+ * マシンタイプ
+ * コンテナイメージ
+
+ここでは、作成したGCRのコンテナイメージを使って、作成をします。他の２つの項目は、ご自身で決めてください。
+
+![Create_instance_template](images/add_container.png)
+
+### 2. Instance Groupを作成する
+
+実際のサーバーのクラスタを雛形であるInstance Templateから作成します。
+
+![Create_instance_group](images/create_instance_group_ui.png)
+
+主な設定項目は以下の通りです。
+
+ * インスタンスグループの名前
+ * クラスタのロケーション
+ * オートスケールするかの可否
+
+これらの項目は必要に応じて設定をしてください。ここまでで、クラスタを作成することはできました。
+
+### 3. ロードバランサを設定する
+
+ロードバランサはGoogle Load Balancerを使って、設定をします。
+
+サイドバーの"Network Services"から"Load Balancing"を選択し、"Create Load Balancer"を選択します。すると、次の画面へ遷移します。
+
+![Create_instance_setting](images/create_setting.png)
+
+決済サーバーの決済サーバーは、他のサーバーからのアクセスを想定して"Only between my VMs"を選択します。
+
+すると、以下の画面へ遷移し、3つの項目を設定することになります。
+
+![Create_load_balancer](images/add_three_setting.png)
+
+ * Backendの設定
+ * Host情報の設定
+ * Frontendの設定
+
+#### 3.1 Backendの設定
+
+基本的にはBackendの設定は、先程作成したInstance Groupを設定するだけです。以下の画面で設定をしてください。
+
+![Config_backend](images/config_backend.png)
+
+#### 3.2 Host情報の設定
+
+「どのパスでアクセスしたら許可・拒否するのか、またどのBackendへ転送するのか」を設定することになります。
+
+![Config_host](images/config_host.png)
+
+今回は複数のBackendがあるわけではないので、指定をする必要があります。
+
+#### 3.3 Frontendの設定
+
+Frontendの設定は、「どのようにこのロードバランサがアクセスするか」を設定します。
+
+![Config_frontend](images/config_frontend.png)
+
+主要な設定項目はInternal IP(内部IP)を設定するのみです。決済を行うときは、このIPを通してアクセスすることになります。
 
 ## ディレクトリの構成
 
